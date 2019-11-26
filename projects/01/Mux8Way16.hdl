@@ -1,0 +1,63 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/01/Mux8Way16.hdl
+
+/**
+ * 8-way 16-bit multiplexor:
+ * out = a if sel == 000
+ *       b if sel == 001
+ *       etc.
+ *       h if sel == 111
+ */
+
+CHIP Mux8Way16 {
+    IN a[16], b[16], c[16], d[16],
+       e[16], f[16], g[16], h[16],
+       sel[3];
+    OUT out[16];
+
+    PARTS:
+    Not(in=sel[0], out=notsel0);
+    Not(in=sel[1], out=notsel1);
+    Not(in=sel[2], out=notsel2);
+
+    And3Way(in[0]=notsel0, in[1]=notsel1, in[2]=notsel2, out=sel000);
+    And3Way(in[0]=sel[0],  in[1]=notsel1, in[2]=notsel2, out=sel001);
+    And3Way(in[0]=notsel0, in[1]=sel[1],  in[2]=notsel2, out=sel010);
+    And3Way(in[0]=sel[0],  in[1]=sel[1],  in[2]=notsel2, out=sel011);
+    And3Way(in[0]=notsel0, in[1]=notsel1, in[2]=sel[2],  out=sel100);
+    And3Way(in[0]=sel[0],  in[1]=notsel1, in[2]=sel[2],  out=sel101);
+    And3Way(in[0]=notsel0, in[1]=sel[1],  in[2]=sel[2],  out=sel110);
+    And3Way(in[0]=sel[0],  in[1]=sel[1],  in[2]=sel[2],  out=sel111);
+
+    BitToBus16(in=sel000, out=bus16sel000);
+    BitToBus16(in=sel001, out=bus16sel001);
+    BitToBus16(in=sel010, out=bus16sel010);
+    BitToBus16(in=sel011, out=bus16sel011);
+    BitToBus16(in=sel100, out=bus16sel100);
+    BitToBus16(in=sel101, out=bus16sel101);
+    BitToBus16(in=sel110, out=bus16sel110);
+    BitToBus16(in=sel111, out=bus16sel111);
+
+    And16(a=a, b=bus16sel000, out=aand000);
+    And16(a=b, b=bus16sel001, out=band001);
+    And16(a=c, b=bus16sel010, out=cand010);
+    And16(a=d, b=bus16sel011, out=dand011);
+    And16(a=e, b=bus16sel100, out=eand100);
+    And16(a=f, b=bus16sel101, out=fand101);
+    And16(a=g, b=bus16sel110, out=gand110);
+    And16(a=h, b=bus16sel111, out=hand111);
+
+    Or8Way16(
+        a=aand000,
+        b=band001,
+        c=cand010,
+        d=dand011,
+        e=eand100,
+        f=fand101,
+        g=gand110,
+        h=hand111,
+        out=out
+    );
+}

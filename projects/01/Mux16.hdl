@@ -1,0 +1,69 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/01/Mux16.hdl
+
+/**
+ * 16-bit multiplexor: 
+ * for i = 0..15 out[i] = a[i] if sel == 0 
+ *                        b[i] if sel == 1
+ */
+
+CHIP Mux16 {
+    IN a[16], b[16], sel;
+    OUT out[16];
+
+    PARTS:
+    And(a=b[0], b=sel, out=selandb0);
+    And(a=b[1], b=sel, out=selandb1);
+    And(a=b[2], b=sel, out=selandb2);
+    And(a=b[3], b=sel, out=selandb3);
+    And(a=b[4], b=sel, out=selandb4);
+    And(a=b[5], b=sel, out=selandb5);
+    And(a=b[6], b=sel, out=selandb6);
+    And(a=b[7], b=sel, out=selandb7);
+    And(a=b[8], b=sel, out=selandb8);
+    And(a=b[9], b=sel, out=selandb9);
+    And(a=b[10], b=sel, out=selandb10);
+    And(a=b[11], b=sel, out=selandb11);
+    And(a=b[12], b=sel, out=selandb12);
+    And(a=b[13], b=sel, out=selandb13);
+    And(a=b[14], b=sel, out=selandb14);
+    And(a=b[15], b=sel, out=selandb15);
+
+    Not(in=sel, out=notsel);
+
+    And(a=a[0], b=notsel, out=notselanda0);
+    And(a=a[1], b=notsel, out=notselanda1);
+    And(a=a[2], b=notsel, out=notselanda2);
+    And(a=a[3], b=notsel, out=notselanda3);
+    And(a=a[4], b=notsel, out=notselanda4);
+    And(a=a[5], b=notsel, out=notselanda5);
+    And(a=a[6], b=notsel, out=notselanda6);
+    And(a=a[7], b=notsel, out=notselanda7);
+    And(a=a[8], b=notsel, out=notselanda8);
+    And(a=a[9], b=notsel, out=notselanda9);
+    And(a=a[10], b=notsel, out=notselanda10);
+    And(a=a[11], b=notsel, out=notselanda11);
+    And(a=a[12], b=notsel, out=notselanda12);
+    And(a=a[13], b=notsel, out=notselanda13);
+    And(a=a[14], b=notsel, out=notselanda14);
+    And(a=a[15], b=notsel, out=notselanda15);
+
+    Or(a=notselanda0, b=selandb0, out=out[0]);
+    Or(a=notselanda1, b=selandb1, out=out[1]);
+    Or(a=notselanda2, b=selandb2, out=out[2]);
+    Or(a=notselanda3, b=selandb3, out=out[3]);
+    Or(a=notselanda4, b=selandb4, out=out[4]);
+    Or(a=notselanda5, b=selandb5, out=out[5]);
+    Or(a=notselanda6, b=selandb6, out=out[6]);
+    Or(a=notselanda7, b=selandb7, out=out[7]);
+    Or(a=notselanda8, b=selandb8, out=out[8]);
+    Or(a=notselanda9, b=selandb9, out=out[9]);
+    Or(a=notselanda10, b=selandb10, out=out[10]);
+    Or(a=notselanda11, b=selandb11, out=out[11]);
+    Or(a=notselanda12, b=selandb12, out=out[12]);
+    Or(a=notselanda13, b=selandb13, out=out[13]);
+    Or(a=notselanda14, b=selandb14, out=out[14]);
+    Or(a=notselanda15, b=selandb15, out=out[15]);
+}

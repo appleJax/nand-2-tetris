@@ -1,0 +1,14 @@
+/**
+ * Or 4-Way 16-bit
+ * out = (in[0] or in[1] or in[2] or in[3])
+ */
+
+ CHIP Or4Way16 {
+   IN a[16], b[16], c[16], d[16];
+   OUT out[16];
+
+   PARTS:
+   Or16(a=a, b=b, out=orAB);
+   Or16(a=orAB, b=c, out=orABC);
+   Or16(a=orABC, b=d, out=out);
+ }

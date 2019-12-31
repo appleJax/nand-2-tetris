@@ -39,5 +39,62 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+    // A or C Instruction
+    And(a=instruction[15], b=true, out=isCInstruction);
+    Not(in=isCInstruction, out=isAInstruction);
+
+    // Input to ARegister
+    Mux16(a=outALU, b=instruction, sel=isAInstruction, out=outInstruction);
+    And(a=isCInstruction, b=instruction[5], out=destinationARegister);
+    Or(a=isAInstruction, b=destinationARegister, out=shouldLoadARegister);
+    ARegister(
+        in=outInstruction,
+        load=shouldLoadARegister,
+        out=outARegister,
+        out[0..14]=addressM
+    );
+
+    // A or M -> ALU
+    And(a=isCInstruction, b=instruction[12], out=selectM);
+    Mux16(a=outARegister, b=inM, sel=selectM, out=outAorM);
+
+    // Input to DRegister
+    And(a=isCInstruction, b=instruction[4], out=shouldLoadDRegister);
+    DRegister(in=outALU, load=shouldLoadDRegister, out=outDRegister);
+
+    ALU(
+        x=outDRegister,
+        y=outAorM,
+        zx=instruction[11],
+        nx=instruction[10],
+        zy=instruction[9],
+        ny=instruction[8],
+        f=instruction[7],
+        no=instruction[6],
+        out=outALU,
+        out=outM,
+        zr=zeroResult,
+        ng=negativeResult
+    );
+
+    // WriteM?
+    And(a=isCInstruction, b=instruction[3], out=writeM);
+
+    // PC
+    // positive result
+    Not(in=zeroResult, out=notZero);
+    Not(in=negativeResult, out=notNegative);
+    And(a=notZero, b=notNegative, out=positiveResult);
+
+    // match jump bits
+    And(a=positiveResult, b=instruction[0], out=matchesGT);
+    And(a=zeroResult,     b=instruction[1], out=matchesEQ);
+    And(a=negativeResult, b=instruction[2], out=matchesLT);
+
+    // should jump?
+    Or(a=matchesGT, b=matchesEQ, out=matchesGTE);
+    Or(a=matchesGTE, b=matchesLT, out=matchesJump);
+    And(a=isCInstruction, b=matchesJump, out=shouldJump);
+
+    PC(in=outARegister, load=shouldJump, inc=true, reset=reset, out[0..14]=pc);
 }

@@ -1,11 +1,5 @@
 const fs = require('fs');
-
-const [,, filepath] = process.argv;
-
-if (!fs.existsSync(filepath)) {
-  console.log('File does not exist. Please double check the filepath:', filepath);
-  process.exit();
-}
+const path = require('path');
 
 const COMP = {
   0: '0101010',
@@ -86,16 +80,42 @@ const SYMBOLS = {
   THAT: 4
 };
 
-const hackFilepath = filepath.replace(/\.[^.]*$/, '.hack');
-const writeStream = fs.createWriteStream(hackFilepath);
+const defaultCommandMap = {
+  COMP_TABLE: COMP,
+  DEST_TABLE: DEST,
+  JUMP_TABLE: JUMP
+};
 
-writeStream.on('finish', () => console.log('Assembly complete:', hackFilepath));
+let nextFreeAddress = 16;
 
-const program = fs.readFileSync(filepath, 'utf8');
+if (require.main === module) {
+  // This file was executed from the command line as a script
+  const [,, rawFilepath] = process.argv;
+  const filepath = path.resolve(rawFilepath);
 
-const normalizedLines = cleanProgramAndRecordJumpSymbols(program);
+  if (!fs.existsSync(filepath)) {
+    console.log('File does not exist. Please double check the filepath:', filepath);
+    process.exit();
+  }
 
-function cleanProgramAndRecordJumpSymbols(rawProgram) {
+  const hackFilepath = filepath.replace(/\.[^.]*$/, '.hack');
+  const writeStream = fs.createWriteStream(hackFilepath);
+
+  writeStream.on('finish', () => console.log('Assembly complete:', hackFilepath));
+
+  const program = fs.readFileSync(filepath, 'utf8');
+
+  const normalizedLines = cleanProgramAndRecordJumpSymbols(program);
+
+  // Translate to machine code
+  normalizedLines.forEach(line =>
+    writeStream.write(`${translate(line)}\n`)
+  );
+
+  writeStream.end();
+}
+
+function cleanProgramAndRecordJumpSymbols(rawProgram, SYM_TABLE = SYMBOLS) {
   let currentLine = 0;
   let line;
 
@@ -107,8 +127,7 @@ function cleanProgramAndRecordJumpSymbols(rawProgram) {
 
     // Jump Symbols
     if (line.startsWith('(')) {
-      SYMBOLS[line.slice(1, -1)] = currentLine;
-      currentLine;
+      SYM_TABLE[line.slice(1, -1)] = currentLine;
       return result;
     }
 
@@ -116,14 +135,6 @@ function cleanProgramAndRecordJumpSymbols(rawProgram) {
     return result.concat(line);
   }, []);
 }
-
-// Translate to machine code
-let nextFreeAddress = 16;
-normalizedLines.forEach(line =>
-  writeStream.write(`${translate(line)}\n`)
-);
-
-writeStream.end();
 
 function normalize(line) {
   return line.replace(/\/\/.*/, '').replace(/\s/g, '');
@@ -135,27 +146,35 @@ function translate(line) {
     : translateC(line); 
 }
 
-function translateA(identifier) {
-  const address = handleSymbol(identifier);
+function translateA(
+  identifier,
+  SYM_TABLE = SYMBOLS,
+  nextAddress = nextFreeAddress
+) {
+  const address = handleSymbol(identifier, SYM_TABLE, nextAddress);
   return address.toString(2).padStart(16, '0');
 }
 
-function handleSymbol(identifier) {
+function handleSymbol(
+  identifier,
+  SYM_TABLE = SYMBOLS,
+  nextAddress = nextFreeAddress
+) {
   let address = Number(identifier);
   if (isNaN(address)) {
-    address = SYMBOLS[identifier];
+    address = SYM_TABLE[identifier];
     if (address === undefined) {
-      address = nextFreeAddress;
-      SYMBOLS[identifier] = nextFreeAddress;
-      nextFreeAddress++;
+      address = nextAddress;
+      SYM_TABLE[identifier] = nextAddress;
+      nextAddress++;
     }
   }
   return address;
 }
 
-function translateC(line) {
+function translateC(line, commandMap = defaultCommandMap) {
   const instructionParts = parseCInstruction(line);
-  return formatCBinary(instructionParts);
+  return formatCBinary(instructionParts, commandMap);
 }
 
 function parseCInstruction(instruction) {
@@ -174,10 +193,28 @@ function parseCInstruction(instruction) {
   };
 }
 
-function formatCBinary({
-  computation,
-  destination,
-  jump
-}) {
-  return `111${COMP[computation]}${DEST[destination]}${JUMP[jump]}`;
+function formatCBinary(
+  {
+    computation,
+    destination,
+    jump
+  },
+  {
+    COMP_TABLE,
+    DEST_TABLE,
+    JUMP_TABLE
+  } = defaultCommandMap
+) {
+  return `111${COMP_TABLE[computation]}${DEST_TABLE[destination]}${JUMP_TABLE[jump]}`;
 }
+
+module.exports = {
+  cleanProgramAndRecordJumpSymbols,
+  formatCBinary,
+  handleSymbol,
+  normalize,
+  parseCInstruction,
+  translate,
+  translateA,
+  translateC
+};

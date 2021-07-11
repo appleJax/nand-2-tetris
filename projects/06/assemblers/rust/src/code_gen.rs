@@ -1,8 +1,4 @@
-pub struct Command<'a> {
-    dest: &'a str,
-    comp: &'a str,
-    jump: &'a str,
-}
+use crate::parser::Command;
 
 pub fn generate_command(command: Command) -> String {
     let Command { dest, comp, jump } = command;

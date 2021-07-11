@@ -1,5 +1,12 @@
 use regex::Regex;
 
+pub struct Command<'a> {
+    pub dest: &'a str,
+    pub comp: &'a str,
+    pub jump: &'a str,
+}
+
+#[derive(Debug, PartialEq)]
 pub enum CommandType {
     Address,
     Loop,
@@ -29,9 +36,9 @@ impl Parser {
             .collect()
     }
 
-    fn strip_comments(line: &str) -> String {
+    fn strip_comments(line: String) -> String {
         let re = Regex::new("//.*").unwrap();
-        re.replace(line, "").into_owned()
+        re.replace(line, "")
     }
 
     fn strip_whitespace(line: String) -> Option<String> {
@@ -55,7 +62,7 @@ impl Parser {
         self.current_line < self.program.len()
     }
 
-    pub fn get_current_line(&self) -> usize {
+    fn get_current_line(&self) -> usize {
         self.current_line
     }
 
@@ -79,8 +86,18 @@ impl Parser {
         }
     }
 
-    pub fn get_symbol<'a>(&self) -> &'a str {
-        let 
+    pub fn get_symbol(&self) -> String {
+        let line = &self.program[self.current_line];
+        match self.command_type() {
+            CommandType::Address => line[1..].to_string(),
+            CommandType::Loop => line[1..line.len() - 1].to_string(),
+            _ => line.clone(),
+        }
+    }
+
+    pub fn parse_command() -> Command {
+        let dest = String::new();
+        let jump: String::new();
     }
 }
 
@@ -104,5 +121,30 @@ mod tests {
             Parser::new(program).get_program().join("\n"),
             "@R0\nD=M\n0;JMP"
         );
+    }
+
+    #[test]
+    fn command_type() {
+        let a_command = "@R0";
+        let l_command = "(LOOP)";
+        let c_command = "D=D+M;JGE";
+
+        assert_eq!(Parser::new(a_command).command_type(), CommandType::Address);
+
+        assert_eq!(Parser::new(l_command).command_type(), CommandType::Loop);
+
+        assert_eq!(
+            Parser::new(c_command).command_type(),
+            CommandType::Computation
+        );
+    }
+
+    #[test]
+    fn get_symbol() {
+        let a_command = "@R0";
+        let l_command = "(LOOP)";
+
+        assert_eq!(Parser::new(a_command).get_symbol(), "R0");
+        assert_eq!(Parser::new(l_command).get_symbol(), "LOOP");
     }
 }

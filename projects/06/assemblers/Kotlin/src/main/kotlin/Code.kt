@@ -68,7 +68,7 @@ class Code() {
 
     fun genCommand(commandComponents: Parser.Command): String {
         val (dest, comp, jump) = commandComponents
-        return "111" + genDest(dest) + genComp(comp) + genJump(jump)
+        return "111" + genComp(comp) + genDest(dest) + genJump(jump)
     }
 
 }

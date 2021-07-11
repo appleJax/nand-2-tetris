@@ -1,0 +1,1 @@
+/Users/macaroni/Dev/nand2tetris/projects/06/assemblers/rust/target/debug/Rust: /Users/macaroni/Dev/nand2tetris/projects/06/assemblers/rust/src/commands.rs /Users/macaroni/Dev/nand2tetris/projects/06/assemblers/rust/src/main.rs

@@ -26,7 +26,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
     let assembly_code = Assembler::assemble(contents);
 
-    let output_file = config.filepath.replace("hack", "asm");
+    let output_file = config.filepath.replace(".asm", ".hack");
     fs::write(output_file, assembly_code)?;
     Ok(())
 }

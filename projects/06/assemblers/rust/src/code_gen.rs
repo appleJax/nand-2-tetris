@@ -4,9 +4,9 @@ pub fn generate_command(command: Command) -> String {
     let Command { dest, comp, jump } = command;
     format!(
         "111{}{}{}",
-        generate_comp(comp),
-        generate_dest(dest),
-        generate_jump(jump)
+        generate_comp(&comp),
+        generate_dest(&dest),
+        generate_jump(&jump)
     )
 }
 
@@ -77,9 +77,9 @@ mod tests {
     #[test]
     fn gen_command() {
         let command = Command {
-            dest: "MD",
-            comp: "D+M",
-            jump: "JGE",
+            dest: String::from("MD"),
+            comp: String::from("D+M"),
+            jump: String::from("JGE"),
         };
         let binary_command = generate_command(command);
         assert_eq!(binary_command, String::from("1111000010011011"));
@@ -88,9 +88,9 @@ mod tests {
     #[test]
     fn no_dest() {
         let command = Command {
-            dest: "",
-            comp: "D+M",
-            jump: "JGE",
+            dest: String::from(""),
+            comp: String::from("D+M"),
+            jump: String::from("JGE"),
         };
         let binary_command = generate_command(command);
         assert_eq!(binary_command, String::from("1111000010000011"));
@@ -99,9 +99,9 @@ mod tests {
     #[test]
     fn no_jump() {
         let command = Command {
-            dest: "MD",
-            comp: "D+M",
-            jump: "",
+            dest: String::from("MD"),
+            comp: String::from("D+M"),
+            jump: String::from(""),
         };
         let binary_command = generate_command(command);
         assert_eq!(binary_command, String::from("1111000010011000"));
@@ -111,9 +111,9 @@ mod tests {
     #[should_panic]
     fn no_comp() {
         let command = Command {
-            dest: "MD",
-            comp: "",
-            jump: "JGE",
+            dest: String::from("MD"),
+            comp: String::from(""),
+            jump: String::from("JGE"),
         };
         generate_command(command);
     }

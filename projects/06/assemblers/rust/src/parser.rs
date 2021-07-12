@@ -1,15 +1,16 @@
 use regex::Regex;
 
-pub struct Command<'a> {
-    pub dest: &'a str,
-    pub comp: &'a str,
-    pub jump: &'a str,
+#[derive(Debug, PartialEq)]
+pub struct Command {
+    pub dest: String,
+    pub comp: String,
+    pub jump: String,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum CommandType {
     Address,
-    Loop,
+    Jump,
     Computation,
 }
 
@@ -36,9 +37,9 @@ impl Parser {
             .collect()
     }
 
-    fn strip_comments(line: String) -> String {
+    fn strip_comments(line: &str) -> String {
         let re = Regex::new("//.*").unwrap();
-        re.replace(line, "")
+        re.replace(line, "").to_string()
     }
 
     fn strip_whitespace(line: String) -> Option<String> {
@@ -54,16 +55,16 @@ impl Parser {
         }
     }
 
-    pub fn get_program(&self) -> &Vec<String> {
+    fn get_program(&self) -> &Vec<String> {
         &self.program
-    }
-
-    pub fn has_more_commands(&self) -> bool {
-        self.current_line < self.program.len()
     }
 
     fn get_current_line(&self) -> usize {
         self.current_line
+    }
+
+    pub fn has_more_commands(&self) -> bool {
+        self.current_line < self.program.len()
     }
 
     pub fn reset(&mut self) {
@@ -81,7 +82,7 @@ impl Parser {
         let first_char = command.chars().nth(0).unwrap();
         match first_char {
             '@' => CommandType::Address,
-            '(' => CommandType::Loop,
+            '(' => CommandType::Jump,
             _ => CommandType::Computation,
         }
     }
@@ -90,14 +91,44 @@ impl Parser {
         let line = &self.program[self.current_line];
         match self.command_type() {
             CommandType::Address => line[1..].to_string(),
-            CommandType::Loop => line[1..line.len() - 1].to_string(),
+            CommandType::Jump => line[1..line.len() - 1].to_string(),
             _ => line.clone(),
         }
     }
 
-    pub fn parse_command() -> Command {
-        let dest = String::new();
-        let jump: String::new();
+    pub fn parse_command(&self) -> Command {
+        let line = &self.program[self.current_line];
+
+        let mut dest = String::new();
+        let comp;
+        let mut jump = String::new();
+
+        let dest_end_index = line.find("=");
+        let jump_start_index = line.find(";");
+
+        match (dest_end_index, jump_start_index) {
+            (Some(i), Some(j)) => {
+                dest = line[..i].to_string();
+                comp = line[i + 1..j].to_string();
+                jump = line[j + 1..].to_string();
+            }
+
+            (Some(i), None) => {
+                dest = line[..i].to_string();
+                comp = line[i + 1..].to_string();
+            }
+
+            (None, Some(j)) => {
+                comp = line[..j].to_string();
+                jump = line[j + 1..].to_string();
+            }
+
+            (None, None) => {
+                comp = line[..].to_string();
+            }
+        }
+
+        Command { dest, comp, jump }
     }
 }
 
@@ -131,7 +162,7 @@ mod tests {
 
         assert_eq!(Parser::new(a_command).command_type(), CommandType::Address);
 
-        assert_eq!(Parser::new(l_command).command_type(), CommandType::Loop);
+        assert_eq!(Parser::new(l_command).command_type(), CommandType::Jump);
 
         assert_eq!(
             Parser::new(c_command).command_type(),
@@ -146,5 +177,72 @@ mod tests {
 
         assert_eq!(Parser::new(a_command).get_symbol(), "R0");
         assert_eq!(Parser::new(l_command).get_symbol(), "LOOP");
+    }
+
+    #[test]
+    fn line_counter() {
+        let program = "
+            D=D-M;JEQ
+            M=!A
+        ";
+        let mut parser = Parser::new(program);
+
+        assert_eq!(parser.get_current_line(), 0);
+        assert!(parser.has_more_commands());
+
+        parser.advance();
+        assert_eq!(parser.get_current_line(), 1);
+        assert!(parser.has_more_commands());
+
+        parser.advance();
+        assert_eq!(parser.get_current_line(), 2);
+        assert_ne!(parser.has_more_commands(), true);
+
+        parser.advance();
+        assert_eq!(parser.get_current_line(), 2);
+        assert_ne!(parser.has_more_commands(), true);
+
+        parser.reset();
+        assert_eq!(parser.get_current_line(), 0);
+        assert!(parser.has_more_commands());
+    }
+
+    #[test]
+    fn parse_command() {
+        let program = "
+            D=D-M;JEQ
+            M=!A
+            0;JMP
+        ";
+        let mut parser = Parser::new(program);
+
+        assert_eq!(
+            parser.parse_command(),
+            Command {
+                dest: String::from("D"),
+                comp: String::from("D-M"),
+                jump: String::from("JEQ")
+            }
+        );
+
+        parser.advance();
+        assert_eq!(
+            parser.parse_command(),
+            Command {
+                dest: String::from("M"),
+                comp: String::from("!A"),
+                jump: String::new()
+            }
+        );
+
+        parser.advance();
+        assert_eq!(
+            parser.parse_command(),
+            Command {
+                dest: String::new(),
+                comp: String::from("0"),
+                jump: String::from("JMP")
+            }
+        );
     }
 }

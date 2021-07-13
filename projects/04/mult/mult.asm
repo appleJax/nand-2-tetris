@@ -6,32 +6,38 @@
 // Multiplies R0 and R1 and stores the result in R2.
 // (R0, R1, R2 refer to RAM[0], RAM[1], and RAM[2], respectively.)
 
-// Put your code here.
-
-@R2 // initialize result to 0
+// initialize result to 0
+@R2
 M=0
 
-@R0 // copy multiplier to different address to avoid mutating the input
+// copy multiplier to different address to avoid mutating the input
+@R0
 D=M
 @i
 M=D
 
+// end if R0 or R1 <= 0
 @END
-D;JEQ
+D;JLE
+@R1
+D=M
+@END
+D;JLE
 
 (LOOP)
+// add R1 to result
 @R1
 D=M
 @R2
 M=D+M
 
+// decrement i
 @i
 MD=M-1
-@END
-D;JLE
 
+// loop until i <= 0
 @LOOP
-0;JMP
+D;JGT
 
 (END)
 @END

@@ -24,9 +24,9 @@ impl Config {
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let contents = fs::read_to_string(config.filepath.clone())?;
 
-    let assembly_code = Assembler::assemble(contents);
+    let machine_code = Assembler::assemble(contents);
 
     let output_file = config.filepath.replace(".asm", ".hack");
-    fs::write(output_file, assembly_code)?;
+    fs::write(output_file, machine_code)?;
     Ok(())
 }

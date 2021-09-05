@@ -30,9 +30,9 @@ pub enum Command {
     Arithmetic(Op),
     Push(Segment, usize),
     Pop(Segment, usize),
-    Label,
-    Goto,
-    IfGoto,
+    Label(String),
+    Goto(String),
+    IfGoto(String),
     Function,
     Return,
     Call,
@@ -140,12 +140,23 @@ impl Parser {
         parts.next().unwrap().parse::<usize>().unwrap()
     }
 
+    fn get_label(&self) -> String {
+        let command = &self.program[self.current_line];
+        let mut parts = command.split_whitespace();
+
+        parts.next();
+        String::from(parts.next().unwrap())
+    }
+
     pub fn parse_command(&self) -> Command {
         let command = &self.program[self.current_line];
 
         match &command[..2] {
             "pu" => Command::Push(self.get_segment(), self.get_index()),
             "po" => Command::Pop(self.get_segment(), self.get_index()),
+            "la" => Command::Label(self.get_label()),
+            "go" => Command::Goto(self.get_label()),
+            "if" => Command::IfGoto(self.get_label()),
             _ => Command::Arithmetic(self.get_op()),
         }
     }
@@ -272,11 +283,26 @@ mod tests {
     }
 
     #[test]
+    fn get_label() {
+        let program = "
+        label SOME_LABEL
+        "
+        .to_string();
+
+        let mut parser = Parser::new(program);
+
+        assert_eq!(parser.get_label(), String::from("SOME_LABEL"));
+    }
+
+    #[test]
     fn parse_command() {
         let program = "
         push argument 3
         pop local 10
         add
+        label SOME_LABEL
+        goto GOTO_LABEL
+        if-goto IF_GOTO_LABEL
         "
         .to_string();
 
@@ -289,5 +315,23 @@ mod tests {
 
         parser.advance();
         assert_eq!(parser.parse_command(), Command::Arithmetic(Op::Add));
+
+        parser.advance();
+        assert_eq!(
+            parser.parse_command(),
+            Command::Label(String::from("SOME_LABEL"))
+        );
+
+        parser.advance();
+        assert_eq!(
+            parser.parse_command(),
+            Command::Goto(String::from("GOTO_LABEL"))
+        );
+
+        parser.advance();
+        assert_eq!(
+            parser.parse_command(),
+            Command::IfGoto(String::from("IF_GOTO_LABEL"))
+        );
     }
 }

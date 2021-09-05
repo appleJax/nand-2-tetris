@@ -255,6 +255,21 @@ impl CodeGen {
         self.assembly_code.push(String::from("M=D"));
     }
 
+    pub fn gen_label(&mut self, label: String) {
+        self.assembly_code.push(format!("({})", label));
+    }
+
+    pub fn gen_goto(&mut self, label: String) {
+        self.assembly_code.push(format!("@{}", label));
+        self.assembly_code.push(String::from("0;JMP"));
+    }
+
+    pub fn gen_if_goto(&mut self, label: String) {
+        self.pop_stack_to_d();
+        self.assembly_code.push(format!("@{}", label));
+        self.assembly_code.push(String::from("D;JNE"));
+    }
+
     pub fn gen_command(&mut self, command: Command) {
         match command {
             Command::Arithmetic(op) => {
@@ -267,6 +282,18 @@ impl CodeGen {
 
             Command::Pop(segment, index) => {
                 self.gen_pop(segment, index);
+            }
+
+            Command::Label(label) => {
+                self.gen_label(label);
+            }
+
+            Command::Goto(label) => {
+                self.gen_goto(label);
+            }
+
+            Command::IfGoto(label) => {
+                self.gen_if_goto(label);
             }
 
             _ => {}
@@ -749,6 +776,48 @@ mod tests {
                 // SP++
                 String::from("@SP"),
                 String::from("M=M+1"),
+            ]
+        )
+    }
+
+    #[test]
+    fn label() {
+        let mut code_gen = CodeGen::new();
+        code_gen.gen_command(Command::Label(String::from("SOME_LABEL")));
+
+        assert_eq!(
+            code_gen.get_assembly_code(),
+            &vec![String::from("(SOME_LABEL)")]
+        )
+    }
+
+    #[test]
+    fn goto() {
+        let mut code_gen = CodeGen::new();
+        code_gen.gen_command(Command::Goto(String::from("SOME_LABEL")));
+
+        assert_eq!(
+            code_gen.get_assembly_code(),
+            &vec![String::from("@SOME_LABEL"), String::from("0;JMP")]
+        )
+    }
+
+    #[test]
+    fn if_goto() {
+        let mut code_gen = CodeGen::new();
+        code_gen.gen_command(Command::IfGoto(String::from("SOME_LABEL")));
+
+        assert_eq!(
+            code_gen.get_assembly_code(),
+            &vec![
+                // SP--
+                String::from("@SP"),
+                String::from("AM=M-1"),
+                // D = *SP
+                String::from("D=M"),
+                // if D != 0 JUMP
+                String::from("@SOME_LABEL"),
+                String::from("D;JNE")
             ]
         )
     }

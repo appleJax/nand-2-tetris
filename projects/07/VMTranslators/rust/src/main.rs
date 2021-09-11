@@ -1,5 +1,6 @@
 mod cli;
 mod code_gen;
+mod file_reader;
 mod parser;
 mod vm_translator;
 

@@ -1,5 +1,6 @@
+use crate::file_reader::FileReader;
 use crate::vm_translator::Translator;
-use std::{error::Error, fs};
+use std::{error::Error, fs, path::Path};
 
 pub struct Config {
     path: String,
@@ -22,11 +23,16 @@ impl Config {
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let contents = fs::read_to_string(config.path.clone())?;
+    let file_data = FileReader::process(&Path::new(&config.path))?;
 
-    let assembly_code = Translator::translate(contents);
+    let mut translator = Translator::new();
 
-    let output_file = config.path.replace(".vm", ".asm");
-    fs::write(output_file, assembly_code)?;
+    for (filename, contents) in file_data.files {
+        translator.translate(filename, contents);
+    }
+
+    let assembly_code = translator.output();
+
+    fs::write(file_data.output_filename, assembly_code)?;
     Ok(())
 }

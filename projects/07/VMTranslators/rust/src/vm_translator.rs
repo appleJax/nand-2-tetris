@@ -1,19 +1,29 @@
 use crate::code_gen::CodeGen;
 use crate::parser::Parser;
 
-pub struct Translator {}
+pub struct Translator {
+    code_gen: CodeGen,
+}
 
 impl Translator {
-    pub fn translate(raw_program: String) -> String {
+    pub fn new() -> Translator {
+        Translator {
+            code_gen: CodeGen::new(),
+        }
+    }
+
+    pub fn translate(&mut self, filename: String, raw_program: String) {
+        self.code_gen.set_current_filename(&filename);
         let mut parser = Parser::new(raw_program);
-        let mut code_gen = CodeGen::new();
 
         while parser.has_more_commands() {
-            code_gen.gen_command(parser.parse_command());
+            self.code_gen.gen_command(parser.parse_command());
             parser.advance();
         }
+    }
 
-        code_gen.get_assembly_code().join("\n")
+    pub fn output(&self) -> String {
+        self.code_gen.get_assembly_code().join("\n")
     }
 }
 
@@ -23,6 +33,8 @@ mod tests {
 
     #[test]
     fn translate() {
+        let mut translator = Translator::new();
+
         let vm_program = "
         // Test VM Program
 
@@ -85,7 +97,7 @@ mod tests {
             "@R13",
             "A=M",
             "M=D",
-            "@Global.2",
+            "@foo.2",
             "D=M",
             "@SP",
             "A=M",
@@ -137,6 +149,8 @@ mod tests {
         ]
         .join("\n");
 
-        assert_eq!(Translator::translate(vm_program), assembly_code);
+        translator.translate(String::from("foo"), vm_program);
+
+        assert_eq!(translator.output(), assembly_code);
     }
 }

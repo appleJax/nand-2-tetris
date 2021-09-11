@@ -12,9 +12,9 @@ impl Translator {
         }
     }
 
-    pub fn translate(&mut self, filename: String, raw_program: String) {
+    pub fn translate(&mut self, filename: String, file_contents: String) {
         self.code_gen.set_current_filename(&filename);
-        let mut parser = Parser::new(raw_program);
+        let mut parser = Parser::new(file_contents);
 
         while parser.has_more_commands() {
             self.code_gen.gen_command(parser.parse_command());

@@ -44,15 +44,15 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new(raw_program: String) -> Parser {
+    pub fn new(file_contents: String) -> Parser {
         Parser {
             current_line: 0,
-            program: Parser::normalize_program(raw_program),
+            program: Parser::normalize_program(file_contents),
         }
     }
 
-    fn normalize_program(raw_program: String) -> Vec<String> {
-        raw_program
+    fn normalize_program(file_contents: String) -> Vec<String> {
+        file_contents
             .lines()
             .filter_map(|line| {
                 let line = Parser::strip_comments(line);

@@ -5,12 +5,12 @@ use std::{error::Error, fs, path::Path};
 pub struct FileReader;
 
 impl FileReader {
-    pub fn process(path: &Path) -> Result<FileData, Box<dyn Error>> {
+    pub fn process(path: &Path) -> Result<FileContainer, Box<dyn Error>> {
         let empty_file_list = Ok(Vec::new());
         let files = FileReader::get_file_contents(path, empty_file_list)?;
         let output_filename = FileReader::get_output_filename(path)?;
 
-        Ok(FileData {
+        Ok(FileContainer {
             files,
             output_filename,
         })
@@ -27,12 +27,6 @@ impl FileReader {
     fn get_file_contents(path: &Path, file_list: FileListResult) -> FileListResult {
         let mut file_list = file_list?;
 
-        if path.is_file() {
-            let filename = FileReader::strip_extension(path.to_str().unwrap());
-            let contents = fs::read_to_string(path)?;
-            file_list.push((filename, contents));
-        }
-
         if path.is_dir() {
             for entry_result in path.read_dir()? {
                 let entry = entry_result?;
@@ -40,7 +34,17 @@ impl FileReader {
             }
         }
 
+        if FileReader::should_process(&path) {
+            let filename = FileReader::strip_extension(path.to_str().unwrap());
+            let contents = fs::read_to_string(path)?;
+            file_list.push(FileData { filename, contents });
+        }
+
         Ok(file_list)
+    }
+
+    fn should_process(path: &Path) -> bool {
+        path.is_file() && path.extension().unwrap() == "vm"
     }
 
     fn get_output_filename(path: &Path) -> Result<String, Box<dyn Error>> {
@@ -54,9 +58,14 @@ impl FileReader {
     }
 }
 
-type FileList = Vec<(String, String)>;
-
 pub struct FileData {
+    pub filename: String,
+    pub contents: String,
+}
+
+type FileList = Vec<FileData>;
+
+pub struct FileContainer {
     pub files: FileList,
     pub output_filename: String,
 }

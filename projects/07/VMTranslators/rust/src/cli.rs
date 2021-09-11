@@ -1,4 +1,4 @@
-use crate::file_reader::FileReader;
+use crate::file_reader::{FileData, FileReader};
 use crate::vm_translator::Translator;
 use std::{error::Error, fs, path::Path};
 
@@ -23,16 +23,16 @@ impl Config {
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let file_data = FileReader::process(&Path::new(&config.path))?;
+    let file_container = FileReader::process(&Path::new(&config.path))?;
 
     let mut translator = Translator::new();
 
-    for (filename, contents) in file_data.files {
+    for FileData { filename, contents } in file_container.files {
         translator.translate(filename, contents);
     }
 
     let assembly_code = translator.output();
 
-    fs::write(file_data.output_filename, assembly_code)?;
+    fs::write(file_container.output_filename, assembly_code)?;
     Ok(())
 }

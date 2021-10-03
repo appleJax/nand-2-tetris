@@ -33,9 +33,9 @@ pub enum Command {
     Label(String),
     Goto(String),
     IfGoto(String),
-    Function,
+    Call(String, usize),
+    Function(String, usize),
     Return,
-    Call,
 }
 
 pub struct Parser {
@@ -157,6 +157,9 @@ impl Parser {
             "la" => Command::Label(self.get_label()),
             "go" => Command::Goto(self.get_label()),
             "if" => Command::IfGoto(self.get_label()),
+            "ca" => Command::Call(self.get_label(), self.get_index()),
+            "fu" => Command::Function(self.get_label(), self.get_index()),
+            "re" => Command::Return,
             _ => Command::Arithmetic(self.get_op()),
         }
     }
@@ -234,7 +237,7 @@ mod tests {
         "
         .to_string();
 
-        let mut parser = Parser::new(program);
+        let parser = Parser::new(program);
         parser.get_op();
     }
 
@@ -262,7 +265,7 @@ mod tests {
         "
         .to_string();
 
-        let mut parser = Parser::new(program);
+        let parser = Parser::new(program);
         parser.get_segment();
     }
 
@@ -289,7 +292,7 @@ mod tests {
         "
         .to_string();
 
-        let mut parser = Parser::new(program);
+        let parser = Parser::new(program);
 
         assert_eq!(parser.get_label(), String::from("SOME_LABEL"));
     }
@@ -303,6 +306,9 @@ mod tests {
         label SOME_LABEL
         goto GOTO_LABEL
         if-goto IF_GOTO_LABEL
+        call Foo 3
+        function Foo 4
+        return
         "
         .to_string();
 
@@ -333,5 +339,20 @@ mod tests {
             parser.parse_command(),
             Command::IfGoto(String::from("IF_GOTO_LABEL"))
         );
+
+        parser.advance();
+        assert_eq!(
+            parser.parse_command(),
+            Command::Call(String::from("Foo"), 3)
+        );
+
+        parser.advance();
+        assert_eq!(
+            parser.parse_command(),
+            Command::Function(String::from("Foo"), 4)
+        );
+
+        parser.advance();
+        assert_eq!(parser.parse_command(), Command::Return);
     }
 }

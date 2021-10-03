@@ -58,6 +58,7 @@ impl FileReader {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct FileData {
     pub filename: String,
     pub contents: String,
@@ -80,10 +81,10 @@ mod tests {
     fn process_file() {
         match FileReader::process(Path::new("test_input/foo.vm")) {
             Ok(file_data) => {
-                let files = vec![(
-                    String::from("test_input/foo"),
-                    String::from("push argument 3\n"),
-                )];
+                let files = vec![FileData {
+                    filename: String::from("test_input/foo"),
+                    contents: String::from("push argument 3\n"),
+                }];
 
                 assert_eq!(files, file_data.files);
                 assert_eq!("test_input/foo.asm", file_data.output_filename);
@@ -99,18 +100,18 @@ mod tests {
         match FileReader::process(Path::new("test_input")) {
             Ok(file_data) => {
                 let files = vec![
-                    (
-                        String::from("test_input/bar"),
-                        String::from("pop static 2\n"),
-                    ),
-                    (
-                        String::from("test_input/foo"),
-                        String::from("push argument 3\n"),
-                    ),
-                    (
-                        String::from("test_input/baz/qux"),
-                        String::from("push static 4\n"),
-                    ),
+                    FileData {
+                        filename: String::from("test_input/bar"),
+                        contents: String::from("pop static 2\n"),
+                    },
+                    FileData {
+                        filename: String::from("test_input/foo"),
+                        contents: String::from("push argument 3\n"),
+                    },
+                    FileData {
+                        filename: String::from("test_input/baz/qux"),
+                        contents: String::from("push static 4\n"),
+                    },
                 ];
 
                 assert_eq!(files, file_data.files);

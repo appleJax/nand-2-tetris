@@ -3,6 +3,7 @@ use crate::parser::{Command, Op, Segment};
 pub struct CodeGen {
     current_filename: String,
     goto_index: usize,
+    return_index: usize,
     assembly_code: Vec<String>,
 }
 
@@ -11,6 +12,7 @@ impl CodeGen {
         CodeGen {
             current_filename: String::from("Global"),
             goto_index: 0,
+            return_index: 0,
             assembly_code: Vec::new(),
         }
     }
@@ -21,6 +23,22 @@ impl CodeGen {
 
     pub fn set_current_filename(&mut self, filename: &str) {
         self.current_filename = filename.to_string();
+    }
+
+    pub fn output(&self) -> Vec<String> {
+        let mut code = vec![
+            // @SP = 256
+            String::from("@256"),
+            String::from("D=A"),
+            String::from("@R0"),
+            String::from("M=D"),
+            // Call Sys.init
+            String::from("@Sys.init"),
+            String::from("0;JMP"),
+        ];
+
+        code.extend(self.assembly_code.iter().cloned());
+        code
     }
 
     pub fn get_assembly_code(&self) -> &Vec<String> {
@@ -256,18 +274,145 @@ impl CodeGen {
     }
 
     pub fn gen_label(&mut self, label: String) {
-        self.assembly_code.push(format!("({})", label));
+        self.assembly_code
+            .push(format!("({}${})", self.current_filename, label));
     }
 
     pub fn gen_goto(&mut self, label: String) {
-        self.assembly_code.push(format!("@{}", label));
+        self.assembly_code
+            .push(format!("@{}${}", self.current_filename, label));
         self.assembly_code.push(String::from("0;JMP"));
     }
 
     pub fn gen_if_goto(&mut self, label: String) {
         self.pop_stack_to_d();
-        self.assembly_code.push(format!("@{}", label));
+        self.assembly_code
+            .push(format!("@{}${}", self.current_filename, label));
         self.assembly_code.push(String::from("D;JNE"));
+    }
+
+    pub fn gen_call(&mut self, fn_name: String, arity: usize) {
+        // push return-address
+        self.assembly_code
+            .push(format!("@RETURN{}", self.return_index));
+        self.assembly_code.push(String::from("D=A"));
+        self.push_d_to_stack();
+        // push LCL
+        self.assembly_code.push(String::from("@LCL"));
+        self.assembly_code.push(String::from("D=M"));
+        self.push_d_to_stack();
+        // push ARG
+        self.assembly_code.push(String::from("@ARG"));
+        self.assembly_code.push(String::from("D=M"));
+        self.push_d_to_stack();
+        // push THIS
+        self.assembly_code.push(String::from("@THIS"));
+        self.assembly_code.push(String::from("D=M"));
+        self.push_d_to_stack();
+        // push THAT
+        self.assembly_code.push(String::from("@THAT"));
+        self.assembly_code.push(String::from("D=M"));
+        self.push_d_to_stack();
+        // ARG = SP - 5 - arity
+        self.assembly_code.push(String::from("D=M")); // M is SP after pushing THAT
+        self.assembly_code.push(String::from("@5"));
+        self.assembly_code.push(String::from("D=D-A"));
+        self.assembly_code.push(format!("@{}", arity));
+        self.assembly_code.push(String::from("D=D-A"));
+        self.assembly_code.push(String::from("@ARG"));
+        self.assembly_code.push(String::from("M=D"));
+        // LCL = SP
+        self.assembly_code.push(String::from("@SP"));
+        self.assembly_code.push(String::from("D=M"));
+        self.assembly_code.push(String::from("@LCL"));
+        self.assembly_code.push(String::from("M=D"));
+        // goto Fn
+        self.assembly_code.push(format!("@{}", fn_name));
+        self.assembly_code.push(String::from("0;JMP"));
+        // (return-address)
+        self.assembly_code
+            .push(format!("(RETURN{})", self.return_index));
+
+        self.return_index += 1;
+    }
+
+    pub fn gen_function(&mut self, fn_name: String, local_vars: usize) {
+        self.assembly_code.push(format!("({})", fn_name));
+
+        if local_vars == 0 {
+            return;
+        }
+
+        self.assembly_code.push(String::from("@0"));
+        self.assembly_code.push(String::from("D=A"));
+        self.assembly_code.push(String::from("@SP"));
+        self.assembly_code.push(String::from("A=M"));
+
+        for _ in 0..local_vars {
+            self.assembly_code.push(String::from("M=D"));
+            self.assembly_code.push(String::from("A=A+1"));
+        }
+
+        self.assembly_code.push(String::from("@SP"));
+        self.assembly_code.push(String::from("M=A"));
+    }
+
+    pub fn gen_return(&mut self) {
+        // Store LCL in temp var FRAME (R13)
+        // R13 = LCL
+        self.assembly_code.push(String::from("@LCL"));
+        self.assembly_code.push(String::from("D=M"));
+        self.assembly_code.push(String::from("@R13"));
+        self.assembly_code.push(String::from("M=D"));
+        // Store RETURN in temp var FRAME - 5 (R14)
+        // R14 = *(FRAME - 5)
+        self.assembly_code.push(String::from("@5"));
+        self.assembly_code.push(String::from("A=D-A"));
+        self.assembly_code.push(String::from("D=M"));
+        self.assembly_code.push(String::from("@R14"));
+        self.assembly_code.push(String::from("M=D"));
+        // Reposition the return value for the caller
+        // *ARG = pop()
+        self.assembly_code.push(String::from("@SP"));
+        self.assembly_code.push(String::from("AM=M-1"));
+        self.assembly_code.push(String::from("D=M"));
+        self.assembly_code.push(String::from("@ARG"));
+        self.assembly_code.push(String::from("A=M"));
+        self.assembly_code.push(String::from("M=D"));
+        // Restore SP of the caller
+        // SP = ARG+1
+        self.assembly_code.push(String::from("@ARG"));
+        self.assembly_code.push(String::from("D=M+1"));
+        self.assembly_code.push(String::from("@SP"));
+        self.assembly_code.push(String::from("M=D"));
+        // THAT = *(FRAME - 1)
+        self.assembly_code.push(String::from("@R13"));
+        self.assembly_code.push(String::from("AM=M-1"));
+        self.assembly_code.push(String::from("D=M"));
+        self.assembly_code.push(String::from("@THAT"));
+        self.assembly_code.push(String::from("M=D"));
+        // THIS = *(FRAME - 2)
+        self.assembly_code.push(String::from("@R13"));
+        self.assembly_code.push(String::from("AM=M-1"));
+        self.assembly_code.push(String::from("D=M"));
+        self.assembly_code.push(String::from("@THIS"));
+        self.assembly_code.push(String::from("M=D"));
+        // ARG = *(FRAME - 3)
+        self.assembly_code.push(String::from("@R13"));
+        self.assembly_code.push(String::from("AM=M-1"));
+        self.assembly_code.push(String::from("D=M"));
+        self.assembly_code.push(String::from("@ARG"));
+        self.assembly_code.push(String::from("M=D"));
+        // LCL = *(FRAME - 4)
+        self.assembly_code.push(String::from("@R13"));
+        self.assembly_code.push(String::from("AM=M-1"));
+        self.assembly_code.push(String::from("D=M"));
+        self.assembly_code.push(String::from("@LCL"));
+        self.assembly_code.push(String::from("M=D"));
+        // GOTO RET (R14)
+        self.assembly_code.push(String::from("@R14"));
+        self.assembly_code.push(String::from("A=M"));
+        self.assembly_code.push(String::from("0;JMP"));
     }
 
     pub fn gen_command(&mut self, command: Command) {
@@ -296,7 +441,17 @@ impl CodeGen {
                 self.gen_if_goto(label);
             }
 
-            _ => {}
+            Command::Call(fn_name, arity) => {
+                self.gen_call(fn_name, arity);
+            }
+
+            Command::Function(fn_name, local_vars) => {
+                self.gen_function(fn_name, local_vars);
+            }
+
+            Command::Return => {
+                self.gen_return();
+            }
         }
     }
 }
@@ -783,28 +938,31 @@ mod tests {
     #[test]
     fn label() {
         let mut code_gen = CodeGen::new();
+        code_gen.set_current_filename("Foo");
         code_gen.gen_command(Command::Label(String::from("SOME_LABEL")));
 
         assert_eq!(
             code_gen.get_assembly_code(),
-            &vec![String::from("(SOME_LABEL)")]
+            &vec![String::from("(Foo$SOME_LABEL)")]
         )
     }
 
     #[test]
     fn goto() {
         let mut code_gen = CodeGen::new();
+        code_gen.set_current_filename("Foo");
         code_gen.gen_command(Command::Goto(String::from("SOME_LABEL")));
 
         assert_eq!(
             code_gen.get_assembly_code(),
-            &vec![String::from("@SOME_LABEL"), String::from("0;JMP")]
+            &vec![String::from("@Foo$SOME_LABEL"), String::from("0;JMP")]
         )
     }
 
     #[test]
     fn if_goto() {
         let mut code_gen = CodeGen::new();
+        code_gen.set_current_filename("Foo");
         code_gen.gen_command(Command::IfGoto(String::from("SOME_LABEL")));
 
         assert_eq!(
@@ -816,8 +974,184 @@ mod tests {
                 // D = *SP
                 String::from("D=M"),
                 // if D != 0 JUMP
-                String::from("@SOME_LABEL"),
+                String::from("@Foo$SOME_LABEL"),
                 String::from("D;JNE")
+            ]
+        )
+    }
+
+    #[test]
+    fn call() {
+        let mut code_gen = CodeGen::new();
+        code_gen.gen_command(Command::Call(String::from("Foo"), 2));
+
+        assert_eq!(
+            code_gen.get_assembly_code(),
+            &vec![
+                // push return-address
+                String::from("@RETURN0"),
+                String::from("D=A"),
+                String::from("@SP"),
+                String::from("A=M"),
+                String::from("M=D"),
+                String::from("@SP"),
+                String::from("M=M+1"),
+                // push LCL
+                String::from("@LCL"),
+                String::from("D=M"),
+                String::from("@SP"),
+                String::from("A=M"),
+                String::from("M=D"),
+                String::from("@SP"),
+                String::from("M=M+1"),
+                // push ARG
+                String::from("@ARG"),
+                String::from("D=M"),
+                String::from("@SP"),
+                String::from("A=M"),
+                String::from("M=D"),
+                String::from("@SP"),
+                String::from("M=M+1"),
+                // push THIS
+                String::from("@THIS"),
+                String::from("D=M"),
+                String::from("@SP"),
+                String::from("A=M"),
+                String::from("M=D"),
+                String::from("@SP"),
+                String::from("M=M+1"),
+                // push THAT
+                String::from("@THAT"),
+                String::from("D=M"),
+                String::from("@SP"),
+                String::from("A=M"),
+                String::from("M=D"),
+                String::from("@SP"),
+                String::from("M=M+1"),
+                // ARG = SP - 5 - arity
+                String::from("D=M"), // M is SP after pushing THAT
+                String::from("@5"),
+                String::from("D=D-A"),
+                String::from("@2"), // arity -> Foo 2
+                String::from("D=D-A"),
+                String::from("@ARG"),
+                String::from("M=D"),
+                // LCL = SP
+                String::from("@SP"),
+                String::from("D=M"),
+                String::from("@LCL"),
+                String::from("M=D"),
+                // goto Fn
+                String::from("@Foo"),
+                String::from("0;JMP"),
+                // (return-address)
+                String::from("(RETURN0)"),
+            ]
+        )
+    }
+
+    #[test]
+    fn function() {
+        let mut code_gen = CodeGen::new();
+        code_gen.gen_command(Command::Function(String::from("Foo"), 3));
+
+        assert_eq!(
+            code_gen.get_assembly_code(),
+            &vec![
+                String::from("(Foo)"),
+                // initialize 3 local vars to 0
+                // set D=0
+                String::from("@0"),
+                String::from("D=A"),
+                // var 1
+                String::from("@SP"),
+                String::from("A=M"),
+                String::from("M=D"),
+                // var 2
+                String::from("A=A+1"),
+                String::from("M=D"),
+                // var 3
+                String::from("A=A+1"),
+                String::from("M=D"),
+                // set new SP
+                String::from("A=A+1"),
+                String::from("@SP"),
+                String::from("M=A"),
+            ]
+        )
+    }
+
+    #[test]
+    fn function_no_locals() {
+        let mut code_gen = CodeGen::new();
+        code_gen.gen_command(Command::Function(String::from("Bar"), 0));
+
+        assert_eq!(code_gen.get_assembly_code(), &vec![String::from("(Bar)"),])
+    }
+
+    #[test]
+    fn gen_return() {
+        let mut code_gen = CodeGen::new();
+        code_gen.gen_command(Command::Return);
+
+        assert_eq!(
+            code_gen.get_assembly_code(),
+            &vec![
+                // Store LCL in temp var FRAME (R13)
+                // R13 = LCL
+                String::from("@LCL"),
+                String::from("D=M"),
+                String::from("@R13"),
+                String::from("M=D"),
+                // Store RETURN in temp var FRAME - 5 (R14)
+                // R14 = *(FRAME - 5)
+                String::from("@5"),
+                String::from("A=D-A"),
+                String::from("D=M"),
+                String::from("@R14"),
+                String::from("M=D"),
+                // Reposition the return value for the caller
+                // *ARG = pop()
+                String::from("@SP"),
+                String::from("AM=M-1"),
+                String::from("D=M"),
+                String::from("@ARG"),
+                String::from("A=M"),
+                String::from("M=D"),
+                // Restore SP of the caller
+                // SP = ARG+1
+                String::from("@ARG"),
+                String::from("D=M+1"),
+                String::from("@SP"),
+                String::from("M=D"),
+                // THAT = *(FRAME - 1)
+                String::from("@R13"),
+                String::from("AM=M-1"),
+                String::from("D=M"),
+                String::from("@THAT"),
+                String::from("M=D"),
+                // THIS = *(FRAME - 2)
+                String::from("@R13"),
+                String::from("AM=M-1"),
+                String::from("D=M"),
+                String::from("@THIS"),
+                String::from("M=D"),
+                // ARG = *(FRAME - 3)
+                String::from("@R13"),
+                String::from("AM=M-1"),
+                String::from("D=M"),
+                String::from("@ARG"),
+                String::from("M=D"),
+                // LCL = *(FRAME - 4)
+                String::from("@R13"),
+                String::from("AM=M-1"),
+                String::from("D=M"),
+                String::from("@LCL"),
+                String::from("M=D"),
+                // GOTO RET (R14)
+                String::from("@R14"),
+                String::from("A=M"),
+                String::from("0;JMP"),
             ]
         )
     }

@@ -23,7 +23,7 @@ impl Translator {
     }
 
     pub fn output(&self) -> String {
-        self.code_gen.get_assembly_code().join("\n")
+        self.code_gen.output().join("\n")
     }
 }
 
@@ -53,6 +53,12 @@ mod tests {
         .to_string();
 
         let assembly_code = vec![
+            "@256",
+            "D=A",
+            "@R0",
+            "M=D",
+            "@Sys.init",
+            "0;JMP",
             "@ARG",
             "D=M",
             "@3",

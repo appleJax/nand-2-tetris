@@ -1,4 +1,5 @@
 use crate::parser::{Command, Op, Segment};
+use std::path::Path;
 
 pub struct CodeGen {
     current_filename: String,
@@ -38,6 +39,9 @@ impl CodeGen {
         ];
 
         code.extend(self.assembly_code.iter().cloned());
+        code.push(String::from("(Sys.end)"));
+        code.push(String::from("@Sys.end"));
+        code.push(String::from("0;JMP"));
         code
     }
 

@@ -1,5 +1,6 @@
 use crate::code_gen::CodeGen;
 use crate::parser::Parser;
+use std::path::Path;
 
 pub struct Translator {
     code_gen: CodeGen,
@@ -13,7 +14,8 @@ impl Translator {
     }
 
     pub fn translate(&mut self, filename: String, file_contents: String) {
-        self.code_gen.set_current_filename(&filename);
+        let file_stem = Path::new(&filename).file_stem().unwrap().to_str().unwrap();
+        self.code_gen.set_current_filename(file_stem);
         let mut parser = Parser::new(file_contents);
 
         while parser.has_more_commands() {
@@ -152,6 +154,9 @@ mod tests {
             "M=D",
             "@SP",
             "M=M+1",
+            "(Sys.end)",
+            "@Sys.end",
+            "0;JMP",
         ]
         .join("\n");
 

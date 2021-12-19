@@ -1,5 +1,4 @@
 use crate::parser::{Command, Op, Segment};
-use std::path::Path;
 
 pub struct CodeGen {
     current_filename: String,
@@ -39,9 +38,6 @@ impl CodeGen {
         ];
 
         code.extend(self.assembly_code.iter().cloned());
-        code.push(String::from("(Sys.end)"));
-        code.push(String::from("@Sys.end"));
-        code.push(String::from("0;JMP"));
         code
     }
 
@@ -357,8 +353,9 @@ impl CodeGen {
             self.assembly_code.push(String::from("A=A+1"));
         }
 
+        self.assembly_code.push(String::from("D=A"));
         self.assembly_code.push(String::from("@SP"));
-        self.assembly_code.push(String::from("M=A"));
+        self.assembly_code.push(String::from("M=D"));
     }
 
     pub fn gen_return(&mut self) {
@@ -1079,8 +1076,9 @@ mod tests {
                 String::from("M=D"),
                 // set new SP
                 String::from("A=A+1"),
+                String::from("D=A"),
                 String::from("@SP"),
-                String::from("M=A"),
+                String::from("M=D"),
             ]
         )
     }

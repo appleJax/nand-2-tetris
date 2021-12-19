@@ -154,9 +154,6 @@ mod tests {
             "M=D",
             "@SP",
             "M=M+1",
-            "(Sys.end)",
-            "@Sys.end",
-            "0;JMP",
         ]
         .join("\n");
 

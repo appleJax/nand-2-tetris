@@ -49,7 +49,11 @@ impl FileReader {
 
     fn get_output_filename(path: &Path) -> Result<String, Box<dyn Error>> {
         let filename = if path.is_dir() {
-            path.to_string_lossy().into_owned()
+            format!(
+                "{}/{}",
+                path.to_string_lossy().into_owned(),
+                path.file_name().unwrap().to_string_lossy().into_owned()
+            )
         } else {
             FileReader::strip_extension(path.to_str().unwrap())
         };

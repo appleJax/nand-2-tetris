@@ -1,9 +1,3 @@
-@256
-D=A
-@R0
-M=D
-@Sys.init
-0;JMP
 @ARG
 D=M
 @1

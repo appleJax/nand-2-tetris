@@ -146,6 +146,3 @@ M=D
 @R14
 A=M
 0;JMP
-(Sys.end)
-@Sys.end
-0;JMP

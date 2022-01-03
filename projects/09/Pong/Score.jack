@@ -1,0 +1,58 @@
+class Score {
+  field int player1;
+  field int player2;
+  field int offset;
+
+  constructor Score new() {
+    let player1 = 0;
+    let player2 = 0;
+    let offset = 0;
+    do draw();
+    return this;
+  }
+
+  function void init() {
+    do Output.moveCursor(22, 31);
+    do Output.printString(" / ");
+    return;
+  }
+
+  method void addPoint(int player) {
+    if (player = 1) {
+      let player1 = player1 + 1;
+      if (player1 > 9) {
+        if (player1 > 99) {
+          let offset = 2;
+        } else {
+          let offset = 1;
+        }
+      }
+    } else {
+      let player2 = player2 + 1;
+    }
+
+    do draw();
+    return;
+  }
+
+  method int getScore(int player) {
+    if (player = 1) {
+      return player1;
+    } else {
+      return player2;
+    }
+  }
+
+  method void draw() {
+    do Output.moveCursor(22, 29 - offset);
+    do Output.printInt(getScore(1));
+    do Output.moveCursor(22, 35);
+    do Output.printInt(getScore(2));
+    return;
+  }
+
+  method void dispose() {
+    do Memory.deAlloc(this);
+    return;
+  }
+}

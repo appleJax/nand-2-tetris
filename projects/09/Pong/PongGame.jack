@@ -1,0 +1,42 @@
+class PongGame {
+  field Paddle player1;
+  field Paddle player2;
+  field Ball ball;
+  field Score score;
+
+  constructor PongGame new() {
+    do Paddle.init();
+    do Score.init();
+    let player1 = Paddle.new(1);
+    let player2 = Paddle.new(2);
+    let ball = Ball.new(5);
+    let score = Score.new();
+    return this;
+  }
+
+  method void run() {
+    var boolean exit;
+    var int key;
+    let exit = false;
+
+    while (~exit) {
+      let key = Keyboard.keyPressed();
+      if (key = 81)  { let exit = true; }     // q key
+      do ball.draw();
+    }
+
+    do Screen.clearScreen();
+    do Output.moveCursor(11, 22);
+    do Output.printString("Thanks for playing!");
+    return;
+  }
+
+  method void dispose() {
+    do player1.dispose();
+    do player2.dispose();
+    do ball.dispose();
+    do score.dispose();
+    do Memory.deAlloc(this);
+    return;
+  }
+}

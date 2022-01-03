@@ -1,0 +1,23 @@
+class Ball {
+  field int size;
+  field int x;
+  field int y;
+
+  constructor Ball new(int radius) {
+    let x = 20;
+    let y = 20;
+    let size = radius;
+    return this;
+  }
+
+  method void draw() {
+    do Screen.setColor(true);
+    do Screen.drawCircle(x, y, size);
+    return;
+  }
+
+  method void dispose() {
+    do Memory.deAlloc(this);
+    return;
+  }
+}

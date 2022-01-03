@@ -1,0 +1,38 @@
+class Paddle {
+  field int x;
+  field int y;
+  field int direction;
+
+  static int width;
+  static int height;
+
+  constructor Paddle new(int player) {
+    let y = 117;
+
+    if (player = 1) {
+      let x = 0;
+    } else {
+      let x = 511 - width;
+    }
+
+    do draw();
+    return this;
+  }
+
+  function void init() {
+    let width = 5;
+    let height = 50;
+    return;
+  }
+
+  method void draw() {
+    do Screen.setColor(true);
+    do Screen.drawRectangle(x, y, x + width, y + height);
+    return;
+  }
+
+  method void dispose() {
+    do Memory.deAlloc(this);
+    return;
+  }
+}

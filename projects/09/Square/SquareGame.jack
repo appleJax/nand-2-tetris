@@ -52,24 +52,18 @@ class SquareGame {
       let exit = false;
       
       while (~exit) {
-         // waits for a key to be pressed
-         while (key = 0) {
-            let key = Keyboard.keyPressed();
-            do moveSquare();
-         }
+         let key = Keyboard.keyPressed();
+
          if (key = 81)  { let exit = true; }     // q key
          if (key = 90)  { do square.decSize(); } // z key
          if (key = 88)  { do square.incSize(); } // x key
+         if (key = 0)  { let direction = 0; } // no key pressed
          if (key = 131) { let direction = 1; }   // up arrow
          if (key = 133) { let direction = 2; }   // down arrow
          if (key = 130) { let direction = 3; }   // left arrow
          if (key = 132) { let direction = 4; }   // right arrow
 
-         // waits for the key to be released
-         while (~(key = 0)) {
-            let key = Keyboard.keyPressed();
-            do moveSquare();
-         }
+         do moveSquare();
      } // while
      return;
    }

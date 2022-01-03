@@ -6,11 +6,17 @@
 // Computes the sum of 2/3 and 1/5.
 class Main {
    function void main() {
-      var Fraction a, b, c;        
+      var Fraction a, b, c, d, e;
       let a = Fraction.new(2,3);  
-      let b = Fraction.new(1,5);  
+      let b = Fraction.new(2,5);
       let c = a.plus(b);  // Computes c = a + b
-      do c.print();       // Prints "13/15"
+      let d = Fraction.new(12, 20);
+      do c.print();       // Prints "16/15"
+      do Output.println();
+      do d.print();       // Prints "3/5"
+      do Output.println();
+      let e = b.minus(c);
+      do e.print();       // Prints "-2/3"
       return;
    }
 }

@@ -37,6 +37,13 @@ class Fraction {
       return Fraction.new(sum, denominator * other.getDenominator());
    }
 
+   /** Returns the difference of this fraction and the other one. */
+   method Fraction minus(Fraction other) {
+      var int diff;
+      let diff = (numerator * other.getDenominator()) - (other.getNumerator() * denominator);
+      return Fraction.new(diff, denominator * other.getDenominator());
+   }
+
    // More fraction-related methods (minus, times, div, etc.) can be added here.
   
    /** Disposes this fraction. */
@@ -58,7 +65,8 @@ class Fraction {
       var int r;
       while (~(b = 0)) {             // applies Euclid's algorithm
          let r = a - (b * (a / b));  // r = remainder of the integer division a/b
-         let a = b; let b = r;
+         let a = b;
+         let b = r;
       }
       return a;
    }
